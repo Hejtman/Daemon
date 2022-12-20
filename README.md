@@ -10,3 +10,5 @@ General purpose daemon with terminal to control + web interface to show the stat
 ./main.py uninstall
 ```
 
+TODO: "reload" command to reload daemons source code within the same process? 
+TODO: rename to ?demon?demonic? in order not to conflict with daemon module
