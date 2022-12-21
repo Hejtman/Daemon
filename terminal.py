@@ -3,7 +3,7 @@ import logging
 import signal
 import typer
 import os
-from daemon import DaemonContext  # pip3 install python-daemon   # https://www.python.org/dev/peps/pep-3143/
+from daemon import DaemonContext  # pip3 install python-demon   # https://www.python.org/dev/peps/pep-3143/
 
 from demon import Demon
 
@@ -14,7 +14,7 @@ class Terminal:
 
         @terminal.command()
         def start():
-            """ Start the daemon = detach from terminal session. """
+            """ Start the demon = detach from terminal session. """
             def die_gracefully() -> None:
                 logger.debug('😈 dyeing gracefully.')
                 demon.stop()
@@ -31,17 +31,17 @@ class Terminal:
 
         @terminal.command()
         def stop():
-            """ Stop the running daemon. """
+            """ Stop the running demon. """
             pass  # TODO
 
         @terminal.command()
         def status():
-            """ Check whether is daemon running or not. """
+            """ Check whether is demon running or not. """
             pass  # TODO
 
         @terminal.command()
         def install():
-            """ Make the daemon to start with the system start. """
+            """ Make the demon to start with the system start. """
             pass  # TODO
 
         @terminal.command()

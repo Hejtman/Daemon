@@ -5,6 +5,6 @@ from demon import Demon
 
 
 if __name__ == '__main__':
-    demon = Demon(pid_file_path='/var/run/daemon.pid',
-                  logger_file_path='/var/log/daemon.log')
+    demon = Demon(pid_file_path='/var/run/demon.pid',  # TODO: move into terminal for configuration
+                  logger_file_path='/var/log/demon.log')
     Terminal(demon)
