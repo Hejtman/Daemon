@@ -11,5 +11,4 @@ General purpose daemon with terminal to control + web interface to show the stat
 ```
 
 TODO: install, uninstall
-TODO: "reload" command to reload daemons source code within the same process? 
-TODO: validate code
+TODO: "reload" command to reload daemons source code within the same process?

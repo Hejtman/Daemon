@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Result:
+    """ Execution result holder. """
     exit_code: int
     message: str
 
