@@ -1,5 +1,4 @@
 import atexit
-import logging
 import signal
 import sys
 import time
@@ -9,6 +8,7 @@ from enum import Enum
 from daemon import DaemonContext  # pip3 install python-demon   # https://www.python.org/dev/peps/pep-3143/
 from pathlib import Path
 from demon import Demon
+from logger import Logger
 
 
 class Status(Enum):
@@ -18,13 +18,12 @@ class Status(Enum):
     PERMISSION_ERROR = (3, '😈🔒 permission error')
 
 
-class Terminal:
+class Terminal(Logger):
     def __init__(self, demon_cls: type[Demon], terminal: typer.Typer = typer.Typer()):
+        super().__init__(log_file_path='/var/log/demon.log')
         self.demon_cls: type[Demon] = demon_cls
         self.pid_file_path = '/var/run/demon.pid'
-        self.logger_file_path = '/var/log/demon.log'
         self.start_status_check_after = 2  # seconds
-        self.logger = logging.getLogger(__name__)   # TODO: log into console + file
 
         @terminal.command()
         def start():
@@ -56,13 +55,14 @@ class Terminal:
 
             status_ = self.send_demon(signal_=signal.SIGTERM)  # handled by daemon to graceful terminate
             if status_ is not Status.RUNNING:
-                self.die(*status_.value.value)  # FIXME: WTF?
+                self.die(*status_.value)
             wait_for_pid_file_been_removed_by_gracefully_dying_daemon()
 
         @terminal.command()
         def status():
             """ Check whether is demon running or not. """
-            self.send_demon(signal_=0)  # SIGNAL 0 is ignored by daemon, but fails if not delivered.
+            _, message = self.send_demon(signal_=0).value  # SIGNAL 0 is ignored by daemon, but fails if not delivered.
+            self.logger.info(message)
 
         @terminal.command()
         def install():
@@ -111,10 +111,10 @@ class Terminal:
             demon.stop()
             self.remove_pid_file()  # command "stop" is waiting for this file being removed = all jobs finished
 
-        with DaemonContext(files_preserve=[self.logger_file_path],  # other file handlers are closed
+        with DaemonContext(files_preserve=[self.log_file_handler.stream.fileno()],  # other file handlers are closed
                            working_directory=f'{Path(__file__).parent.absolute()}',
                            signal_map={signal.SIGTERM: 'terminate'}):  # SIGTERM needs to be handled in order to atexit to work > to die_gracefully
-            self.logger.debug(f'😈 demon.name daemonized')
+            self.logger.debug(f'😈 daemonized')
             atexit.register(die_gracefully)
             self.create_pid_file()
             demon.start()  # blocking until demon alive
