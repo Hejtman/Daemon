@@ -10,6 +10,7 @@ from pathlib import Path
 from demon import Demon
 from logger import Logger
 from result import Result, SUCCESS, FAIL
+from pid_file import PidFile
 
 
 class Status(Enum):
@@ -19,11 +20,11 @@ class Status(Enum):
     PERMISSION_ERROR = Result(3, '😈🔒 permission error')
 
 
-class Terminal(Logger):
+class Terminal(Logger, PidFile):
     def __init__(self, demon_cls: type[Demon], terminal: typer.Typer = typer.Typer()):
         super().__init__(log_file_path='/var/log/demon.log')
+        PidFile.__init__(self, pid_file_path='/var/run/demon.pid')
         self.demon_cls: type[Demon] = demon_cls
-        self.pid_file_path = '/var/run/demon.pid'
         self.start_status_check_after = 2  # seconds
 
         @terminal.command()
@@ -39,30 +40,23 @@ class Terminal(Logger):
             self.logger.debug('😈 starting')
             if os.fork():
                 time.sleep(self.start_status_check_after)  # PARENT process: Wait for CHILD process to start the daemon. Anything is fatal during daemons init.
-                self.die(self.send_demon(signal_=0).value)  # SIGNAL 0 is ignored by daemon, but fails if not delivered.
+                status_ = self.send_demon(signal_=0)  # SIGNAL 0 is ignored by daemon, but fails if not delivered.
+                self.die(SUCCESS if status_ is Status.RUNNING else status_.value)
 
             self.demonize()  # CHILD process:  blocking until daemon alive - but detached from terminal
 
         @terminal.command()
         def stop():
             """ Stop the running demon. """
-            def wait_for_pid_file_been_removed_by_gracefully_dying_daemon():
-                wait_time = 2
-                period = 0.1
-                for i in range(int(wait_time / period)):
-                    if not os.path.exists(self.pid_file_path):
-                        self.die(SUCCESS)
-                self.die(FAIL)
-
             status_ = self.send_demon(signal_=signal.SIGTERM)  # handled by daemon to graceful terminate
             if status_ is not Status.RUNNING:
                 self.die(status_.value)
-            wait_for_pid_file_been_removed_by_gracefully_dying_daemon()
+            self.die(SUCCESS if self.is_pid_file_removed_by_daemon() else FAIL)
 
         @terminal.command()
         def status():
             """ Check whether is demon running or not. """
-            _, message = self.send_demon(signal_=0).value  # SIGNAL 0 is ignored by daemon, but fails if not delivered.
+            message = self.send_demon(signal_=0).value.message  # SIGNAL 0 is ignored by daemon, but fails if not delivered.
             self.logger.info(message)
 
         @terminal.command()
@@ -76,13 +70,6 @@ class Terminal(Logger):
             pass  # TODO
 
         terminal()
-
-    def create_pid_file(self) -> None:
-        with open(self.pid_file_path, 'w') as f:
-            f.write(str(os.getpid()))
-
-    def remove_pid_file(self) -> None:
-        os.remove(self.pid_file_path)
 
     def send_demon(self, signal_: int) -> Status:
         """ Sends running demon a signal. Throws various exceptions when not delivered. """
