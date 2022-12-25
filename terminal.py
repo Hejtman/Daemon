@@ -9,10 +9,10 @@ from pathlib import Path
 import typer
 from daemon import DaemonContext  # pip3 install python-demon   # https://www.python.org/dev/peps/pep-3143/
 from demon import Demon
-from pid_file import PidFile
-from result import FAIL, SUCCESS, Result
+from library.pid_file import PidFile
+from library.result import FAIL, SUCCESS, Result
 
-from logger import Logger
+from library.logger import Logger
 
 
 class Status(Enum):
